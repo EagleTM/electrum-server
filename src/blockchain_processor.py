@@ -42,7 +42,8 @@ class BlockchainProcessor(Processor):
         self.mempool_hist = {} # addr -> (txid, delta)
         self.mempool_hashes = set([])
         self.mempool_lock = threading.Lock()
-
+        self.mempool_last_update = 0
+        self.mempool_update_interval = config.get('server', 'mempool_update_interval')
         self.address_queue = Queue()
 
         try:
@@ -679,6 +680,11 @@ class BlockchainProcessor(Processor):
 
 
     def memorypool_update(self):
+        now = time.time()
+        if time.time() - self.mempool_last_update < self.mempool_update_interval:
+            return
+        self.mempool_last_update = now
+        
         t0 = time.time()
         mempool_hashes = set(self.bitcoind('getrawmempool'))
         touched_addresses = set([])
